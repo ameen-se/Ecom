@@ -1,0 +1,90 @@
+package ecom.persistence.implement;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import ecom.entities.AddressOrder;
+import ecom.entities.Cart;
+import ecom.entities.ProductOrder;
+import ecom.entities.RequestOrder;
+import ecom.persistence.OrderDAO;
+import ecom.repository.CartRepository;
+import ecom.repository.OrderRepository;
+import ecom.util.StatusOrder;
+
+@Component
+public class OrderDaoImpl implements OrderDAO {
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Override
+    public void saveOrder(int userId, RequestOrder requestOrder) {
+
+        List<Cart> cartList = cartRepository.findByUserId(userId);
+
+        for (Cart cart:cartList) {
+
+            ProductOrder productOrder = new ProductOrder();
+
+            productOrder.setOrderId(UUID.randomUUID().toString());
+            productOrder.setOrderDate(LocalDate.now());
+            productOrder.setProduct(cart.getProduct());
+            productOrder.setPrice(cart.getProduct().getDiscountPrice());
+
+            productOrder.setQuantity(cart.getQuantity());
+            productOrder.setUser(cart.getUser());
+
+            productOrder.setStatus(StatusOrder.IN_PROGRESS.name());
+            productOrder.setPaymentType(requestOrder.getPaymentType());
+
+            AddressOrder addressOrder = new AddressOrder();
+            addressOrder.setFirstName(requestOrder.getFirstName());
+            addressOrder.setLastName(requestOrder.getLastName());
+            addressOrder.setEmail(requestOrder.getEmail());
+            addressOrder.setMobile(requestOrder.getMobile());
+            addressOrder.setAddress(requestOrder.getAddress());
+            addressOrder.setCity(requestOrder.getCity());
+            addressOrder.setState(requestOrder.getState());
+            addressOrder.setPincode(requestOrder.getPincode());
+
+            productOrder.setAddressOrder(addressOrder);
+            orderRepository.save(productOrder);
+        }
+    }
+
+    @Override
+    public List<ProductOrder> getOrdersByUser(int userId) {
+        return null;
+    }
+
+    @Override
+    public ProductOrder orderStatusUpdate(int id, String status) {
+
+        Optional<ProductOrder> findById = orderRepository.findById(id);
+
+        if (findById.isPresent()) {
+
+            ProductOrder productOrder = findById.get();
+            productOrder.setStatus(status);
+            ProductOrder updateOrder = orderRepository.save(productOrder);
+            return updateOrder;
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<ProductOrder> getAllOrdersByUser() {
+
+        return orderRepository.findAll();
+    }
+}

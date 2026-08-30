@@ -1,0 +1,58 @@
+package ecom.entities;
+
+import java.util.Date;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserDtls {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+
+    private String mobileNumber;
+
+    private String email;
+
+    private String address;
+
+    private String city;
+
+    private String state;
+
+    private String pinCode;
+
+    private String password;
+
+    private String profileImage;
+
+    private String role;
+
+    @Column
+    private Boolean isEnabled = true;
+
+    @Column
+    private Boolean accountNonBlocked = true;
+
+    @Column
+    private Integer failedAttempt = 0;
+
+    private Date lockTime;
+
+    private String resetToken;
+}

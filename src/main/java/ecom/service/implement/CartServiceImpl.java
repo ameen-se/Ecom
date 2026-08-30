@@ -1,0 +1,122 @@
+package ecom.service.implement;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import ecom.entities.Cart;
+import ecom.entities.Product;
+import ecom.entities.UserDtls;
+import ecom.repository.CartRepository;
+import ecom.repository.ProductRepository;
+import ecom.repository.UserRepository;
+import ecom.service.CartService;
+import ecom.service.ProductService;
+import ecom.service.UserService;
+
+@Service
+public class CartServiceImpl implements CartService {
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ProductService productService;
+
+    @Override
+    public Cart cartSave(int productId, int userId) {
+        UserDtls user = userRepository.findById(userId).get();
+        Product product = productRepository.findById(productId).get();
+
+        if (product == null || user == null) {
+            throw new RuntimeException("User or Product not found");
+        }
+        if (product.getStock() <= 0) {
+            throw new RuntimeException("Out of stock");
+        }
+        Cart existingCart = cartRepository.findByProductIdAndUserId(productId, userId);
+
+        if (existingCart == null) {
+
+            Cart newCart = new Cart();
+            newCart.setUser(user);
+            newCart.setProduct(product);
+            newCart.setQuantity(1);
+            newCart.setTotalPrice(product.getDiscountPrice());
+            product.setStock(product.getStock() - 1);
+            productService.saveProduct(product);
+
+            return cartRepository.save(newCart);
+        } else {
+            int newQuantity = existingCart.getQuantity() + 1;
+
+            if (product.getStock() < newQuantity) {
+                throw new RuntimeException("Not enough stock");
+            }
+
+            existingCart.setQuantity(newQuantity);
+            existingCart.setTotalPrice(newQuantity * product.getDiscountPrice());
+            product.setStock(product.getStock() - 1);
+            productService.saveProduct(product);
+
+            return cartRepository.save(existingCart);
+        }
+    }
+
+    @Override
+    public List<Cart> getCartsByUser(int userId) {
+
+        List<Cart> cartList = cartRepository.findByUserId(userId);
+        double totalOrderPrice = 0.0;
+        List<Cart> updateCarts = new ArrayList<>();
+
+        for (Cart c:cartList) {
+            double totalPrice = (c.getProduct().getDiscountPrice() * c.getQuantity());
+            c.setTotalPrice(totalPrice);
+            totalOrderPrice = totalOrderPrice + totalPrice;
+            c.setTotalPriceOrders(totalOrderPrice);
+            updateCarts.add(c);
+        }
+        return updateCarts;
+    }
+
+    @Override
+    public int getCountCart(int userId) {
+
+        int countByUserId = cartRepository.countByUserId(userId);
+
+        return countByUserId;
+    }
+
+    @Override
+    public void updateQuantity(String action, int cartId) {
+
+        Cart cart = cartRepository.findById(cartId).get();
+        int update;
+
+        if (action.equalsIgnoreCase("de")) {
+
+            update = cart.getQuantity() - 1;
+
+            if (update<=0) {
+                cartRepository.deleteById(cartId);
+                return;
+            }
+        } else {
+            update = cart.getQuantity() + 1;
+        }
+        cart.setQuantity(update);
+        Cart save = cartRepository.save(cart);
+    }
+}
